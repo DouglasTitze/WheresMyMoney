@@ -1,6 +1,7 @@
 from django.shortcuts import render
-from django.http import Http404
+from django.http import Http404, HttpResponseRedirect
 from django.views.generic import CreateView, DetailView, ListView, UpdateView, DeleteView
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 # Import notes model
 from .models import Notes
@@ -11,6 +12,13 @@ class NotesCreateView(CreateView):
     # fields = ['title','text']
     form_class = NotesForm
     success_url = '/notes/'
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        self.object.user = self.request.user
+        self.object.save()
+        return HttpResponseRedirect(self.get_success_url())
+    
 
 class NotesUpdateView(UpdateView):
     model = Notes
@@ -24,10 +32,14 @@ class NotesDeleteView(DeleteView):
 # def list(request):
 #     all_notes = Notes.objects.all()
 #     return render(request,'notes/notes_list.html', {'notes': all_notes})
-class NotesListView(ListView):
+class NotesListView(LoginRequiredMixin, ListView):
     model = Notes
     context_object_name = "notes"
+    login_url = '/admin'
 
+    def get_queryset(self):
+        return self.request.user.notes.all()
+    
 
 # def single_note(request,pk):
 #     try:
